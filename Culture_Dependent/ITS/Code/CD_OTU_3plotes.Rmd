@@ -1,0 +1,224 @@
+---
+title: "OTU_3plot"
+author: "Michelle"
+date: '2022-07-13'
+output: rmdformats::downcute
+editor_options: 
+  chunk_output_type: console
+---
+
+# Part 1
+
+## Loading required
+
+```{r}
+#install.packages("package:tidyr")
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(plyr)
+#library(phyloseq)
+library(ggplot2)
+# ecological diversity analysis
+library(vegan) 
+library(dplyr)
+# scale functions for vizualizations
+library(scales)
+library(grid)
+# data manipulation package
+library(reshape2)
+#library(cowplot)
+#library(phyloseq)
+```
+
+
+## Format OTU list file generated from mothur
+
+```{r}
+setwd("/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/R_OTU_Analysis/")
+
+OTU.list <- read.csv("DRS_plot.csv", header = F, sep = ",", quote = "\"")
+
+#remove row 1 and 2, which contains the header labels and numOtus and wite the output to a csv table
+list.table <- OTU.list[-c(1,2),] %>% write.csv('DRS_OTU.table.July.13.csv')
+```
+
+## Format DRS_otu_sample_id.July.13.csv data using python to split samples using p
+
+1. Download and install python
+2. Open terminal
+3. Use type python3 to find the path 
+4. Create and save codes in a script split.py and run it on the command line
+5. /Library/Frameworks/Python.framework/Versions/3.9/bin/python3 split.py 
+```{r, eval=FALSE}
+import re, sys, getopt
+
+input_file = "DRS_OTU.table.July.13.csv"
+
+output_file = "DRS_list_split.csv"
+
+inhandle = open(input_file)
+outhandle = open(output_file, "w")
+
+out_list = []
+for line in inhandle:
+        full_line = line.rstrip().replace('"','').split(',')
+        #print(len(full_line))
+        if len(full_line) > 2:
+                OTU_ID = full_line[0]
+                OTU_SeqNames = full_line[1:]
+                for SeqName in OTU_SeqNames:
+                        #print(OTU_ID, SeqName)
+                        out_line = [OTU_ID, SeqName + '\n']
+                        outhandle.write(",".join(out_line))
+        else:
+                outhandle.write(line)
+
+inhandle.close()
+outhandle.close()
+```
+
+```{r, eval=TRUE}
+list.table<- read.csv("DRS_list_split.csv", header = T)
+
+
+#list.table[nrow(list.table)+ 1,] <- c("otu", "sample_id")
+
+#list.table[order(colnames(list.table))]
+
+```
+
+
+
+
+```{r, eval=FALSE}
+
+#provide a column name for columm 1
+# names(list.table)[0] <- "otu" 
+#provide a column name for columm 3
+# names(list.table)[0] <- "sample_id"
+# list.table %>% write.csv('DRS_otu_sample_id.July.13.csv') 
+
+#otu.id<-read.csv("DRS_otu_sample_id.July.13.csv")
+#View (otu.id)
+
+#remove column 1 since that column contains just numbers
+#otu.id <-otu.id[,-1] 
+#otu.id %>% write.csv('DRS_otu_sample_id.July.13.csv')
+#View(otu.id)
+#str(otu.id)
+```
+
+## Loading and faormating the taxonomy table obtained from mothur for downstream analysis in R studio
+```{r, eval=TRUE}
+# rename taxonomy and sorting taxonomy table
+#read the taxonomy file
+
+taxonomy.tab <- read_tsv("DRS_plots.taxonomy")%>%
+#Make all row names lowercase
+rename_all(tolower)%>%
+ # Remove size from the table
+dplyr::select(-size, otu, taxonomy)%>%
+#modify the taxonomy column with string repalce all (str_replace_all)
+#mutate will allow us to change an existing column
+#We can change an existinmg column by overwriting the column or add new column
+#Cleaning thje taxonomy column to get genus names
+#modify the taxonomy colum with str_replace_all, using as input to the str_replace_all the string taxomony column.
+#Remove the numbers in the parenthesis (bootstrap values) using a regular expression pattern="\\(\\d*\\)".
+#Boot strap values tells us what percentage of the percent of sequences in the OTU has that clasification
+#Ultimately, a genus level name is needed to pull all OTUs fromk the same genera
+#pattern to match \\()=match an actual parenthesis 
+#\\d = a digit character, + =match one or more of the preceding character which is a digit in this case or *= match zero or more of the preceding character which is a digit in this case
+#replacement="" replace with nothing 
+mutate(taxonomy=str_replace_all(string=taxonomy, pattern="\\(\\d*\\)", replacement=""))%>%
+mutate(taxonomy=str_replace_all(string=taxonomy, pattern=";$", replacement=""))%>% #removing kpocfgs and replace with nothing
+mutate(taxonomy=str_replace_all(string=taxonomy, pattern="[kpocfgs]\\__", replacement="")) %>%
+mutate(taxonomy=str_replace_all(string=taxonomy, pattern="_unclassified", replacement=""))%>%
+separate(taxonomy, into=c("kingdom", "phylum", "class", "order", "family", "genus", "species"), sep=";")
+
+
+
+#as. factor allows you to format otu in ascending order
+taxonomy.tab$otu <- as.factor(taxonomy.tab$otu)
+
+
+#join the list.table and taxonomy.tab by otu and write it to a csv file named DRS.tax.otu.csv
+inner_join(list.table, taxonomy.tab, by ="otu") %>% write.csv('DRS.tax.otu.csv')
+```
+
+## Loading the metadata file containg the number of plots and sample id for each plot
+```{r}
+meta.data <-read.csv("DRS_metadata.csv", header = T)
+
+```
+
+
+```{r}
+#Few sequences which has not 
+tax.otu <- read.csv("DRS.tax.otu.UNITE.NCBI.csv")
+
+otu_re_abund <-inner_join(meta.data, tax.otu, by ="sample_id")
+
+#%>% 
+#  inner_join(., tax.otu, by ="otu")
+#View(otu_re_abund)
+
+otu.genus <- otu_re_abund %>% filter (!is.na(genus))%>%
+  group_by (plot, genus) %>% dplyr::summarize (count = n()) %>%
+  arrange(plot, (desc(count)))
+  
+
+
+#devtools::install_github("cdanielcadena/tanagR")
+library(devtools)
+library(permute)
+library(gridExtra)
+library(graphics)
+library(grDevices)
+library(ggplot2)
+library(magick)
+#https://github.com/cdanielcadena/tanagR
+
+library(tanagR)
+
+otu.genus$genus <- as.factor(otu.genus$genus)
+
+colors.n.genus <- length(levels(otu.genus$genus))
+
+
+gplot.genus <- otu.genus %>% left_join(.,
+otu.genus %>% group_by (plot) %>% dplyr::summarize (t = sum(count))) %>%
+mutate(relabund= count/t) %>% dplyr::rename(Genus=genus) %>%
+	ggplot(aes(x=plot, y=relabund, fill=Genus)) +
+  geom_bar(aes(), stat="identity", position="fill", color="black")+
+		guides(fill = guide_legend(keywidth = 1, keyheight = 1)) +
+  		xlab("plot") +
+  		ylab("Relative Abundance") +
+  		scale_x_discrete(labels = c("DH","RT","SB")) +
+		theme(axis.text.x=element_text(size=14, angle = 360, hjust = 1),
+			axis.text.y=element_text(size = 14),
+			axis.line.y=element_line(),
+			axis.title=element_blank(),#text(size=14),
+			axis.line.x = element_blank(),
+			axis.ticks.x = element_blank(),
+			panel.border = element_blank(),
+			panel.background = element_rect(fill = "transparent"),
+    			plot.background = element_rect(fill = "transparent", color = NA),
+    			panel.grid.major = element_blank(),
+			panel.grid.minor = element_blank(),
+    		legend.background = element_rect(fill = "transparent"),
+    		legend.box.background = element_blank(),
+    		legend.text = element_text(size=12),
+    		legend.spacing.x = unit(0.5, 'cm'),
+    		legend.spacing.y = unit(0.5, 'cm'),
+    		legend.title = element_text(size=14))
+ plot(gplot.genus) 
+  
+p1 <- gplot.genus + scale_fill_manual(values=colorRampPalette(c(tanagr_palette("tangara_seledon"),tanagr_palette("ramphocelus_sanguinolentus"),tanagr_palette("chlorochrysa_nitidissima"),tanagr_palette("tangara_chilensis")))(colors.n.genus))
+
+plot(p1)
+```
+
+
+
+
