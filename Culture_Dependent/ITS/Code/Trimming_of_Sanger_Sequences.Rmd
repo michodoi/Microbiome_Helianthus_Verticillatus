@@ -10,20 +10,20 @@ editor_options:
 
 # Install packages
 ```{r setup, include=FALSE}
-#if (!requireNamespace("BiocManager", quietly = TRUE))
-    #install.packages("BiocManager")
+# if (!requireNamespace("BiocManager", quietly = TRUE))
+    # install.packages("BiocManager")
 
 install.packages("devtools")
 
 
 # The following initializes usage of Bioc devel
-#BiocManager::install(version='devel')
+# BiocManager::install(version='devel')
 
-#BiocManager::install("sangeranalyseR")
+# BiocManager::install("sangeranalyseR")
 
 # Biocinductor used: Upgrade 14 packages to Bioconductor version '3.18'? [y/n]
 
-#if (!requireNamespace("BiocManager", quietly = TRUE))
+# if (!requireNamespace("BiocManager", quietly = TRUE))
     #install.packages("BiocManager")
 
 #BiocManager::install("sangeranalyseR")
@@ -48,12 +48,12 @@ library(shiny)
 ```{r}
 inputFilesPath1<- file.path("/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/Raw_Sequences/all_plot/")
 
-#Specify the type of file (ie., ABIF) and the trimming parameters
+# Specify the type of file (ie., ABIF) and the trimming parameters
 
 my_sangerAlignment_2 <- SangerAlignment(inputSource          = "ABIF",
                                       processMethod        = "REGEX",
                                       ABIF_Directory       = inputFilesPath1,
-#Remove the digits from the start of a name,any character in the range 0 to 10; in other words, any digit
+# Remove the digits from the start of a name,any character in the range 0 to 10; in other words, any digit
                                       REGEX_SuffixForward  = "[A-Z]*_ITS1_.+ab1$",
                                       REGEX_SuffixReverse  = "[A-Z]*_ITS4_.+ab1$",
                                       #REGEX_SuffixForward  = "()*_ITS1.ab1$",
@@ -91,8 +91,5 @@ generateReport(my_sangerAlignment_2,
                includeSangerContig = TRUE)
 
 ```
-
-
-??pairwise.wilcox.test 
 
 
