@@ -1,0 +1,98 @@
+---
+title: "Trimming of Sanger samples"
+author: "Michelle"
+date: "2023-09-25"
+output: rmdformats::downcute
+editor_options: 
+  chunk_output_type: console
+---
+
+
+# Install packages
+```{r setup, include=FALSE}
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    #install.packages("BiocManager")
+
+install.packages("devtools")
+
+
+# The following initializes usage of Bioc devel
+#BiocManager::install(version='devel')
+
+#BiocManager::install("sangeranalyseR")
+
+# Biocinductor used: Upgrade 14 packages to Bioconductor version '3.18'? [y/n]
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    #install.packages("BiocManager")
+
+#BiocManager::install("sangeranalyseR")
+
+
+#library(sangeranalyseR)
+```
+
+
+
+#Load required libraries
+```{r}
+install_github("roblanf/sangeranalyseR")
+library(devtools)
+library(devtools)
+library(sangeranalyseR)
+library(sangeranalyseR)
+library(shiny)
+````
+
+# Import the file path that contains the raw sequences
+```{r}
+inputFilesPath1<- file.path("/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/Raw_Sequences/all_plot/")
+
+#Specify the type of file (ie., ABIF) and the trimming parameters
+
+my_sangerAlignment_2 <- SangerAlignment(inputSource          = "ABIF",
+                                      processMethod        = "REGEX",
+                                      ABIF_Directory       = inputFilesPath1,
+#Remove the digits from the start of a name,any character in the range 0 to 10; in other words, any digit
+                                      REGEX_SuffixForward  = "[A-Z]*_ITS1_.+ab1$",
+                                      REGEX_SuffixReverse  = "[A-Z]*_ITS4_.+ab1$",
+                                      #REGEX_SuffixForward  = "()*_ITS1.ab1$",
+                                      #REGEX_SuffixReverse  = "()*_ITS4.ab1$",
+                                        TrimmingMethod        = "M2",
+                                M1TrimmingCutoff      = NULL,
+                                M2CutoffQualityScore  = 40,
+                                M2SlidingWindowSize   = 10,
+                                baseNumPerRow         = 100,
+                                heightPerRow          = 200,
+                                signalRatioCutoff     = 0.90,
+                                showTrimmed           = TRUE,
+                      
+                                      minReadsNum          = 2,
+                                      minReadLength        = 20,
+                                      minFractionCall      = 0.5,
+                                      maxFractionLost      = 0.5,
+                                      processorsNum        = 2)
+
+my_sangerAlignment_2
+its1and4_trimmed_table <- my_sangerAlignment_2@objectResults@readResultTable
+write.table(its1and4_trimmed_table,"/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/Trimmed_Sequences/all_plot/its1and4_trimmed_table.txt",sep='\t',row.names=TRUE,col.names=TRUE)
+
+launchApp(my_sangerAlignment_2)
+ writeFasta(my_sangerAlignment_2,
+            outputDir         = "/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/Trimmed_Sequences/all_plot/all_plot",
+            compress          = F,
+           compression_level = NA,
+          selection         = "all")
+ 
+
+generateReport(my_sangerAlignment_2,
+               outputDir           = "/Users/modoi/Library/CloudStorage/OneDrive-UniversityofTennessee/Projects/Helianthus_verticillatus/Objective5_Microbiome/Microbiome_Culture_Dependent/Trimmed_Sequences/all_plot/all_plot/",
+               includeSangerRead   = TRUE,
+               includeSangerContig = TRUE)
+
+```
+
+
+??pairwise.wilcox.test 
+
+
